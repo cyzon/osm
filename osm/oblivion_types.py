@@ -53,14 +53,23 @@ class CreatedRecord:
             record = FieldRecord(field_type, field_size, field_data)
             self.fields.append(record)
             
-            # print(record)
-
             offset += 6 + field_size
 
-    def __str__(self):
-        return f"CreatedRecord(record_type: {self.record_type}, size: {self.size}, " \
-               f"flags: {self.flags}, form_id: {hex(self.form_id)}, " \
-               f"vc_info: {self.vc_info}, data: u8[{len(self.data)}], fields: {self.fields})"
+    def __str__(self, depth=0):
+        ret = "    "*depth + "ChangeRecord {\n" + \
+              "    "*(depth+1)+ f"record_type: {self.record_type},\n" + \
+              "    "*(depth+1)+ f"size: {self.size},\n" + \
+              "    "*(depth+1)+ f"flags: {self.flags},\n" + \
+              "    "*(depth+1)+ f"form_id: {hex(self.form_id).upper()},\n" + \
+              "    "*(depth+1)+ f"vc_info: {self.vc_info},\n" + \
+              "    "*(depth+1)+  "fields: [\n"
+        
+        for field in self.fields:
+            ret += field.__str__(depth+2)
+            ret += "]" + \
+                   "    "*depth + "},\n"
+        
+        return ret
     
     def __repr__(self):
         return self.__str__()
@@ -117,7 +126,7 @@ class Globals:
     interface_data: bytes
     regions_size: int
     regions_num: int
-    regions: dict[int, int]
+    regions_data: list[tuple[int, int]] 
 
 
 {
@@ -215,9 +224,11 @@ class FieldRecord:
                 print(f"[E] Unknown field record type: {self._type}")
                 self.record = None
 
-    def __str__(self):
-        return f"FieldRecord(_type: {self._type}, size: {self.size}, " \
-               f"data: u8[{len(self.data)}], record: {self.record})"
+    def __str__(self, depth=0):
+        return "   "*depth + "FieldRecord {\n" + \
+               "   "*(depth+1) + f"type: {self._type},\n" + \
+               "   "*(depth+1) + f"size: {self.size},\n" + \
+               self.record.__str__(depth=depth+1)
 
     def __repr__(self):
         return self.__str__()
@@ -229,9 +240,8 @@ class ANAM:
 
         self.enchantment_points = int.from_bytes(self.data[:4], "little")
     
-    def __str__(self):
-        return f"ANAM(enchantment_points: {self.enchantment_points}, size: {self.size}, " \
-               f"data: u8[{len(self.data)}])"
+    def __str__(self, depth=0):
+        return "   "*depth + f"ANAM(enchantment_points: {self.enchantment_points}),\n"
     
     def __repr__(self):
         return self.__str__()
@@ -250,11 +260,17 @@ class DATA:
         self.weight = struct.unpack("f", self.data[24:28])[0]
         self.damage = int.from_bytes(self.data[28:30], "little")
 
-    def __str__(self):
-        return f"DATA(type: {hex(self.type)}, speed: {self.speed}, reach: {self.reach}, " \
-               f"flags: {bin(self.flags)}, value: {self.value}, health: {self.health}, " \
-               f"weight: {self.weight}, damage: {self.damage}, size: {self.size}, " \
-               f"data: u8[{len(self.data)}])"
+    def __str__(self, depth=0):
+        return "   "*depth + "DATA {\n" + \
+               "   "*(depth+1) + f"type: {hex(self.type)},\n" + \
+               "   "*(depth+1) + f"speed: {self.speed},\n" + \
+               "   "*(depth+1) + f"reach: {self.reach},\n" + \
+               "   "*(depth+1) + f"flags: {bin(self.flags)},\n" + \
+               "   "*(depth+1) + f"value: {self.value},\n" + \
+               "   "*(depth+1) + f"health: {self.health},\n" + \
+               "   "*(depth+1) + f"weight: {self.weight},\n" + \
+               "   "*(depth+1) + f"damage: {self.damage},\n"
+    
     
     def __repr__(self):
         return self.__str__()
@@ -269,8 +285,8 @@ class EFID:
 
         self.form_id = int.from_bytes(self.data[:4], "little")
 
-    def __str__(self):
-        return f"EFID(form_id: {hex(self.form_id)}, size: {self.size}, data: u8[{len(self.data)}])"
+    def __str__(self, depth=0):
+        return "   "*depth + f"EFID(form_id: {hex(self.form_id).upper()})," \
 
     def __repr__(self):
         return self.__str__()
@@ -289,11 +305,15 @@ class EFIT:
         self._type = int.from_bytes(self.data[16:20], "little")
         self.actor_value = int.from_bytes(self.data[20:24], "little")
 
-    def __str__(self):
-        return f"EFIT(effect_id: {hex(self.effect_id)}, magnitude: {self.magnitude}, " \
-                    f"area: {self.area}, duration: {self.duration}, " \
-                    f"type: {hex(self._type)}, actor_value: {hex(self.actor_value)}, " \
-                    f"size: {self.size}, data: u8[{len(self.data)}])"
+    def __str__(self, depth=0):
+        return "   "*depth + "EFIT {\n" + \
+                "   "*(depth+1) + f"effect_id: {hex(self.effect_id)},\n" + \
+                "   "*(depth+1) + f"magnitude: {self.magnitude},\n" + \
+                "   "*(depth+1) + f"area: {self.area},\n" + \
+                "   "*(depth+1) + f"duration: {self.duration},\n" + \
+                "   "*(depth+1) + f"type: {hex(self._type)},\n" + \
+                "   "*(depth+1) + f"actor_value: {hex(self.actor_value)},"
+
     def __repr__(self):
         return self.__str__()
 
@@ -304,9 +324,8 @@ class ENAM:
 
         self.enchantment_form_id = int.from_bytes(self.data[:4], "little")
 
-    def __str__(self):
-        return f"ENAM(enchantment_form_id: {hex(self.enchantment_form_id)}, size: {self.size}," \
-               f" data: u8[{len(self.data)}])"
+    def __str__(self, depth=0):
+        return "   "*depth + f"ENAM(enchantment_form_id: {hex(self.enchantment_form_id).upper()}),"
     
     def __repr__(self):
         return self.__str__()
@@ -321,10 +340,12 @@ class ENIT:
         self.enchantment_cost = int.from_bytes(self.data[8:12], "little")
         self.flags = int.from_bytes(self.data[12:16], "little")
 
-    def __str__(self):
-        return f"ENIT(type: {hex(self.type)}, charge_amount: {self.charge_amount}, " \
-                    f"enchantment_cost: {self.enchantment_cost}, flags: {bin(self.flags)}, " \
-                    f"size: {self.size}, data: u8[{len(self.data)}])"
+    def __str__(self, depth=0):
+        return "   "*depth + "ENIT {\n" + \
+               "   "*(depth+1) + f"type: {hex(self.type)},\n" + \
+               "   "*(depth+1) + f"charge_amount: {self.charge_amount},\n" + \
+               "   "*(depth+1) + f"enchantment_cost: {self.enchantment_cost},\n" + \
+               "   "*(depth+1) + f"flags: {bin(self.flags)},"
     
     def __repr__(self):
         return self.__str__()
@@ -338,8 +359,8 @@ class FULL:
 
         self.name = self.data[:self.size].decode("utf-8")
 
-    def __str__(self):
-        return f"FULL(name: \"{self.name}\", size: {self.size}, data: u8[{len(self.data)}])"
+    def __str__(self, depth=0):
+        return "   "*depth + f"FULL(name: \"{self.name}\"),"
 
     def __repr__(self):
         return self.__str__()
@@ -351,8 +372,10 @@ class ICON:
 
         self.filename = self.data[:self.size].decode("utf-8")
 
-    def __str__(self):
-        return f"ICON(filename: \"{self.filename}\", size: {self.size}, data: u8[{len(self.data)}])"
+    def __str__(self, depth=0):
+        return "   "*depth + "ICON {\n" + \
+               "   "*(depth+1) + f"filename: \"{self.filename}\","
+    
     
     def __repr__(self):
         return self.__str__()
@@ -364,9 +387,9 @@ class MODB:
 
         self.data = int.from_bytes(self.data[:4], "little")
 
-    def __str__(self):
-        return f"MODB(size: {self.size}, data: {self.data})" 
-    
+    def __str__(self, depth=0):
+        return "   "*depth + "MODB(data: {self.data}),"
+      
     def __repr__(self):
         return self.__str__()
 
@@ -377,9 +400,10 @@ class MODL:
 
         self.filename = self.data[:self.size].decode("utf-8")
     
-    def __str__(self):
-        return f"MODL(filename: \"{self.filename}\", size: {self.size}, data: u8[{len(self.data)}])"
-    
+    def __str__(self, depth=0):
+        return "   "*depth + "MODL {\n" + \
+               "   "*(depth+1) + f"filename: \"{self.filename}\","
+        
     def __repr__(self):
         return self.__str__()
 
@@ -391,7 +415,17 @@ class SCIT:
         self.form_id = int.from_bytes(self.data[:4], "little")
         self.school = int.from_bytes(self.data[4:8], "little")
         self.visual_effect = int.from_bytes(self.data[8:12], "little")
-        self.flags = int.from_bytes(self.data[12:16], "little")
+        self.flags = bin(int.from_bytes(self.data[12:16], "little"))
+
+    def __str__(self, depth=0):
+        return "   "*depth + "SCIT {\n" + \
+               "   "*(depth+1) + f"form_id: {hex(self.form_id)},\n" + \
+               "   "*(depth+1) + f"school: {hex(self.school)},\n" + \
+               "   "*(depth+1) + f"visual_effect: {hex(self.visual_effect)},\n" + \
+               "   "*(depth+1) + f"flags: {bin(self.flags)},"
+    
+    def __repr__(self):
+        return self.__str__()
         
 
 class SPIT:
@@ -404,10 +438,13 @@ class SPIT:
         self.spell_level = int.from_bytes(self.data[8:12], "little")
         self.flags = int.from_bytes(self.data[12:16], "little")
     
-    def __str__(self):
-        return f"SPIT(type: {hex(self._type)}, spell_cost: {self.spell_cost}, " \
-                    f"spell_level: {self.spell_level}, flags: {bin(self.flags)}, " \
-                    f"size: {self.size}, data: u8[{len(self.data)}])"
+    def __str__(self, depth=0):
+        return "   "*depth + "SPIT {\n" + \
+               "   "*(depth+1) + f"type: {hex(self._type)},\n" + \
+               "   "*(depth+1) + f"spell_cost: {self.spell_cost},\n" + \
+               "   "*(depth+1) + f"spell_level: {self.spell_level},\n" + \
+               "   "*(depth+1) + f"flags: {bin(self.flags)},"
+    
     def __repr__(self):
         return self.__str__()
     

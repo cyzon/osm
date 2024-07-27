@@ -1,10 +1,10 @@
 import os
-
 from pprint import pprint
+
+import funcy
 
 from oblivion_save import *
 from utils import chunks
-
 
 def text_dump(save: OblivionSave):
     pprint(save.file_header)
@@ -27,6 +27,7 @@ def text_dump(save: OblivionSave):
     items = [(k, v) for k, v in save.globals.death_counts.items()]
     for chunk in chunks(items, 8):
         print(chunk)
+    print("}")
 
     pprint({"game_time_seconds": save.globals.game_time_seconds})
     pprint({"processes_size": save.globals.processes_size})
@@ -38,6 +39,12 @@ def text_dump(save: OblivionSave):
     pprint({"pc_combat_count": save.globals.pc_combat_count})
     pprint({"created_num": save.globals.created_num})
     pprint({"created_records": save.globals.created_records})
+    print("CreatedRecords: {")
+    for record in save.globals.created_records:
+        tmp = {k: record.__dict__[k] for k in record.__dict__.keys() - {"fields", "data"}}
+        # pprint(str(tmp))
+        print(str(record))
+        # pprint(record.fields)
     pprint({"quick_keys_size": save.globals.quick_keys_size})
     print({"quick_keys_data": save.globals.quick_keys_data})
     pprint({"reticle_size": save.globals.reticle_size})
@@ -46,7 +53,10 @@ def text_dump(save: OblivionSave):
     pprint({"interface_data": save.globals.interface_data})
     pprint({"regions_size": save.globals.regions_size})
     pprint({"regions_num": save.globals.regions_num})
-    # pprint({"regions": save.globals.regions})
+    print("regions_data: {")
+    for chunk in chunks(save.globals.regions_data, 6):
+        print(chunk)
+    print("}")
 
 def main():
     save = OblivionSave("C:\\Users\\Czyzx\\Documents\\My Games\\Oblivion\\Saves\\autosave.ess")
