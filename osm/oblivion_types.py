@@ -1,4 +1,4 @@
-
+from dataclasses import dataclass
 
 # 6	    FACT	Factions
 # 19	APPA	Alchemical Apparatus
@@ -37,37 +37,90 @@ change_record_types = {
 
 }
 
-
+@dataclass
 class Screenshot:
-    def __init__(self, size, width, height, data) -> None:
-        self.size = size
-        self.width = width
-        self.height = height
-        self.data = data
+    size: int
+    width: int
+    height: int
+    data: bytes
 
+@dataclass
 class PCLocation:
-    def __init__(self, cell, x, y, z):
-        self.cell = cell
-        self.x = x
-        self.y = y
-        self.z = z
+    cell: int
+    x: float
+    y: float
+    z: float
 
-class Record:
-    def __init__(self, record_type, size, flags, form_id, vc_info, data):
-        self.record_type = record_type
-        self.size = size
-        self.flags = flags
-        self.form_id = form_id
-        self.vc_info = vc_info
-        self.data = data
-        # TODO: add a list of field records
-        # self.fields = fields
+@dataclass
+class CreatedRecord:
+    record_type: bytes
+    size: int
+    flags: int
+    form_id: int
+    vc_info: int
+    data: bytes
+    # TODO: fields: list[FieldRecord]
 
+@dataclass
 class ChangeRecord:
-    def __init__(self, form_id, _type, flags, version, data_size, data):
-        self.form_id = form_id
-        self._type = _type
-        self.flags = flags
-        self.version = version
-        self.data_size = data_size
-        self.data = data
+    form_id: int
+    _type: int
+    flags: int
+    version: int
+    data_size: int
+    data: bytes
+
+@dataclass
+class FileHeader:
+    header: bytes
+    major_version: int
+    minor_version: int
+    exe_time: bytes
+
+@dataclass
+class SaveHeader:
+    header_version: int
+    save_header_size: int
+    save_num: int
+    pc_name: str
+    pc_level: int
+    pc_cell_name: str
+    game_days: float
+    game_ticks: int
+    game_time: bytes
+    screenshot: Screenshot
+
+@dataclass    
+class Globals:
+    form_ids_offset: int
+    records_num: int
+    next_object_id: int
+    world_id: int
+    world_x: int
+    world_y: int
+    pc_location: PCLocation
+    globals_num: int
+    global_vars: dict[int, float]
+    tes_class_size: int
+    num_death_counts: int
+    death_counts: dict[int, int]
+    game_time_seconds: int
+    processes_size: int
+    processes_data: bytes
+    spec_event_size: int
+    spec_event_data: bytes
+    weather_size: int
+    weather_data: bytes
+    pc_combat_count: int
+    created_num: int
+    created_records: list[CreatedRecord]
+    quick_keys_size: int
+    quick_keys_data: list[int]
+    reticle_size: int
+    reticle_data: bytes
+    interface_size: int
+    interface_data: bytes
+    regions_size: int
+    regions_num: int
+    regions: dict[int, int]
+
