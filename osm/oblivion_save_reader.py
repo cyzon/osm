@@ -82,18 +82,18 @@ class OblivionSaveReader:
 
 
         for _ in range(created_num):
-            record_type = self.read_bytes(4)
-            record_size = self.read_u32()
+            cr_type = self.read_bytes(4)
+            cr_size = self.read_u32()
             flags = self.read_u32()
             form_id = self.read_u32()
             vc_info = self.read_u32()
-            data = self.read_bytes(record_size)
+            data = self.read_bytes(cr_size)
 
-            record = CreatedRecord(
-                record_type, record_size, flags, form_id, vc_info, data
+            cr = CreatedRecord(
+                cr_type, cr_size, flags, form_id, vc_info, data
             )
 
-            created_records.append(record)
+            created_records.append(cr)
 
         saved_pos = self.position
         #   Quick Keys settings. The size of individual data records can be 1 or 5 bytes, depending

@@ -1,4 +1,6 @@
 from dataclasses import dataclass
+from pprint import pprint
+
 
 @dataclass
 class Screenshot:
@@ -14,7 +16,6 @@ class PCLocation:
     y: float
     z: float
 
-@dataclass
 class CreatedRecord:
     record_type: bytes
     size: int
@@ -22,6 +23,45 @@ class CreatedRecord:
     form_id: int
     vc_info: int
     data: bytes
+
+    def __init__(self, record_type, size, flags, form_id, vc_info, data):
+        self.record_type = record_type
+        self.size = size
+        self.flags = flags
+        self.form_id = form_id
+        self.vc_info = vc_info
+        self.data = data
+        self.fields = []
+
+        match self.record_type:
+            case b"SPEL":
+                offset = 0
+
+                while offset < self.size:
+                    field_type = self.data[offset:offset+4]
+                    field_size = int.from_bytes(self.data[offset+4:offset+6], 'little')
+                    field_data = self.data[offset+6:offset+6+field_size]
+
+                    record = FieldRecord(field_type, field_size, field_data)
+                    self.fields.append(record)
+                    
+                    # if record.record is None:
+                        # print(f"Field type: {field_type}")
+                        # print(f"Field size: {field_size}")
+                        # print(f"Field data: {field_data}")
+                    pprint(record)
+                    # print(record.record)
+
+                    offset += 6 + field_size
+                
+                # print(f"Field type: {field_type}")
+                # print(f"Field size: {field_size}")
+                # print(f"Field data: {field_data}")
+            case _:
+                print(f"[E] Unknown change record type: \"{self.record_type}\", skipping")
+
+    def __str__(self):
+        return f"CreatedRecord({self.record_type}, {self.size}, {self.flags}, {self.form_id}, {self.vc_info}, {self.data})"
     # TODO: fields: list[FieldRecord]
 
 
@@ -141,3 +181,56 @@ class WorldSpaces:
     num: int
     spaces: list[int]
 
+class FieldRecord:
+    def __init__(self, type, size, data):
+        self._type = type
+        self.size = size
+        self.data = data
+        self.record: FieldRecord
+
+        match self._type:
+            case b"EFID":
+                self.record = EFID(self.size, self.data)
+            case b"FULL":
+                self.name = self.data[:self.size].decode("utf-8")
+                self.record = FULL(self.size, self.data)
+            case _:
+                print(f"[E] Unknown field record type: {self._type}")
+                self.record = None
+
+    def __str__(self):
+        return f"FieldRecord(_type: {self._type}, size: {self.size}, " \
+                           f"data: u8[{len(self.data)}], record: {self.record})"
+
+    def __repr__(self):
+        return self.__str__()
+
+# Contains the form ID for a magic effect. (MGEF)
+# https://en.uesp.net/wiki/Skyrim_Mod:Mod_File_Format/MGEF
+class EFID:
+    def __init__(self, size, data):
+        self.size = size
+        self.data = data
+
+        self.form_id = int.from_bytes(self.data[:4], "little")
+
+    def __str__(self):
+        return f"EFID(form_id: {hex(self.form_id)}, size: {self.size}, data: u8[{len(self.data)}])"
+
+    def __repr__(self):
+        return self.__str__()
+
+# Full in-game name of an object.
+# The data field contains a null-terminated string.
+class FULL:
+    def __init__(self, size, data):
+        self.size = size
+        self.data = data
+
+        self.name = self.data[:self.size].decode("utf-8")
+
+    def __str__(self):
+        return f"FULL(name: \"{self.name}\", size: {self.size}, data: u8[{len(self.data)}])"
+
+    def __repr__(self):
+        return self.__str__()
