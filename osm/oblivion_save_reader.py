@@ -80,7 +80,6 @@ class OblivionSaveReader:
         created_num = self.read_u32()
         created_records: list[CreatedRecord] = []
 
-
         for _ in range(created_num):
             cr_type = self.read_bytes(4)
             cr_size = self.read_u32()

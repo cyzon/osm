@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from pprint import pprint
+import struct
 
 
 @dataclass
@@ -32,38 +33,30 @@ class CreatedRecord:
         self.vc_info = vc_info
         self.data = data
         self.fields = []
+        
+        # print(self.record_type)
 
-        match self.record_type:
-            case b"SPEL":
-                offset = 0
+        offset = 0
 
-                while offset < self.size:
-                    field_type = self.data[offset:offset+4]
-                    field_size = int.from_bytes(self.data[offset+4:offset+6], 'little')
-                    field_data = self.data[offset+6:offset+6+field_size]
+        while offset < self.size:
+            field_type = self.data[offset:offset+4]
+            field_size = int.from_bytes(self.data[offset+4:offset+6], 'little')
+            field_data = self.data[offset+6:offset+6+field_size]
 
-                    record = FieldRecord(field_type, field_size, field_data)
-                    self.fields.append(record)
-                    
-                    # if record.record is None:
-                        # print(f"Field type: {field_type}")
-                        # print(f"Field size: {field_size}")
-                        # print(f"Field data: {field_data}")
-                    pprint(record)
-                    # print(record.record)
+            record = FieldRecord(field_type, field_size, field_data)
+            self.fields.append(record)
+            
+            # print(record)
 
-                    offset += 6 + field_size
-                
-                # print(f"Field type: {field_type}")
-                # print(f"Field size: {field_size}")
-                # print(f"Field data: {field_data}")
-            case _:
-                print(f"[E] Unknown change record type: \"{self.record_type}\", skipping")
+            offset += 6 + field_size
 
     def __str__(self):
-        return f"CreatedRecord({self.record_type}, {self.size}, {self.flags}, {self.form_id}, {self.vc_info}, {self.data})"
-    # TODO: fields: list[FieldRecord]
-
+        return f"CreatedRecord(record_type: {self.record_type}, size: {self.size}, " \
+               f"flags: {self.flags}, form_id: {hex(self.form_id)}, " \
+               f"vc_info: {self.vc_info}, data: u8[{len(self.data)}], fields: {self.fields})"
+    
+    def __repr__(self):
+        return self.__str__()
 
 @dataclass
 class FileHeader:
@@ -189,21 +182,76 @@ class FieldRecord:
         self.record: FieldRecord
 
         match self._type:
+            case b"ANAM":
+                self.record = ANAM(self.size, self.data)
+            case b"DATA":
+                self.record = DATA(self.size, self.data)
             case b"EFID":
                 self.record = EFID(self.size, self.data)
+            case b"EFIT":
+                self.record = EFIT(self.size, self.data)
+            case b"ENAM":
+                self.record = ENAM(self.size, self.data)
+            case b"ENIT":
+                self.record = ENIT(self.size, self.data)
             case b"FULL":
-                self.name = self.data[:self.size].decode("utf-8")
                 self.record = FULL(self.size, self.data)
+            case b"ICON":
+                self.record = ICON(self.size, self.data)
+            case b"MODB":
+                self.record = MODB(self.size, self.data)
+            case b"MODL":
+                self.record = MODL(self.size, self.data)
+            case b"SPIT":
+                self.record = SPIT(self.size, self.data)
             case _:
                 print(f"[E] Unknown field record type: {self._type}")
                 self.record = None
 
     def __str__(self):
         return f"FieldRecord(_type: {self._type}, size: {self.size}, " \
-                           f"data: u8[{len(self.data)}], record: {self.record})"
+               f"data: u8[{len(self.data)}], record: {self.record})"
 
     def __repr__(self):
         return self.__str__()
+
+class ANAM:
+    def __init__(self, size, data):
+        self.size = size
+        self.data = data
+
+        self.enchantment_points = int.from_bytes(self.data[:4], "little")
+    
+    def __str__(self):
+        return f"ANAM(enchantment_points: {self.enchantment_points}, size: {self.size}, " \
+               f"data: u8[{len(self.data)}])"
+    
+    def __repr__(self):
+        return self.__str__()
+
+class DATA:
+    def __init__(self, size, data):
+        self.size = size
+        self.data = data
+
+        self.type = int.from_bytes(self.data[:4], "little")
+        self.speed = struct.unpack("f", self.data[4:8])[0]
+        self.reach = struct.unpack("f", self.data[8:12])[0]
+        self.flags = int.from_bytes(self.data[12:16], "little")
+        self.value = int.from_bytes(self.data[16:20], "little")
+        self.health = int.from_bytes(self.data[20:24], "little")
+        self.weight = struct.unpack("f", self.data[24:28])[0]
+        self.damage = int.from_bytes(self.data[28:30], "little")
+
+    def __str__(self):
+        return f"DATA(type: {hex(self.type)}, speed: {self.speed}, reach: {self.reach}, " \
+               f"flags: {bin(self.flags)}, value: {self.value}, health: {self.health}, " \
+               f"weight: {self.weight}, damage: {self.damage}, size: {self.size}, " \
+               f"data: u8[{len(self.data)}])"
+    
+    def __repr__(self):
+        return self.__str__()
+
 
 # Contains the form ID for a magic effect. (MGEF)
 # https://en.uesp.net/wiki/Skyrim_Mod:Mod_File_Format/MGEF
@@ -217,6 +265,60 @@ class EFID:
     def __str__(self):
         return f"EFID(form_id: {hex(self.form_id)}, size: {self.size}, data: u8[{len(self.data)}])"
 
+    def __repr__(self):
+        return self.__str__()
+
+# Contains the effect data for a magic effect.
+# https://en.uesp.net/wiki/Oblivion_Mod:Mod_File_Format/ENCH#EFIT_Subrecord
+class EFIT:
+    def __init__(self, size, data):
+        self.size = size
+        self.data = data
+
+        self.effect_id = int.from_bytes(self.data[:4], "little")
+        self.magnitude = int.from_bytes(self.data[4:8], "little")
+        self.area = int.from_bytes(self.data[8:12], "little")
+        self.duration = int.from_bytes(self.data[12:16], "little")
+        self._type = int.from_bytes(self.data[16:20], "little")
+        self.actor_value = int.from_bytes(self.data[20:24], "little")
+
+    def __str__(self):
+        return f"EFIT(effect_id: {hex(self.effect_id)}, magnitude: {self.magnitude}, " \
+                    f"area: {self.area}, duration: {self.duration}, " \
+                    f"type: {hex(self._type)}, actor_value: {hex(self.actor_value)}, " \
+                    f"size: {self.size}, data: u8[{len(self.data)}])"
+    def __repr__(self):
+        return self.__str__()
+
+class ENAM:
+    def __init__(self, size, data):
+        self.size = size
+        self.data = data
+
+        self.enchantment_form_id = int.from_bytes(self.data[:4], "little")
+
+    def __str__(self):
+        return f"ENAM(enchantment_form_id: {hex(self.enchantment_form_id)}, size: {self.size}," \
+               f" data: u8[{len(self.data)}])"
+    
+    def __repr__(self):
+        return self.__str__()
+
+class ENIT:
+    def __init__(self, size, data):
+        self.size = size
+        self.data = data
+
+        self.type = int.from_bytes(self.data[:4], "little")
+        self.charge_amount = int.from_bytes(self.data[4:8], "little")
+        self.enchantment_cost = int.from_bytes(self.data[8:12], "little")
+        self.flags = int.from_bytes(self.data[12:16], "little")
+
+    def __str__(self):
+        return f"ENIT(type: {hex(self.type)}, charge_amount: {self.charge_amount}, " \
+                    f"enchantment_cost: {self.enchantment_cost}, flags: {bin(self.flags)}, " \
+                    f"size: {self.size}, data: u8[{len(self.data)}])"
+    
     def __repr__(self):
         return self.__str__()
 
@@ -234,3 +336,71 @@ class FULL:
 
     def __repr__(self):
         return self.__str__()
+    
+class ICON:
+    def __init__(self, size, data):
+        self.size = size
+        self.data = data
+
+        self.filename = self.data[:self.size].decode("utf-8")
+
+    def __str__(self):
+        return f"ICON(filename: \"{self.filename}\", size: {self.size}, data: u8[{len(self.data)}])"
+    
+    def __repr__(self):
+        return self.__str__()
+
+class MODB:
+    def __init__(self, size, data):
+        self.size = size
+        self.data = data
+
+        self.data = int.from_bytes(self.data[:4], "little")
+
+    def __str__(self):
+        return f"MODB(size: {self.size}, data: {self.data})" 
+    
+    def __repr__(self):
+        return self.__str__()
+
+class MODL:
+    def __init__(self, size, data):
+        self.size = size
+        self.data = data
+
+        self.filename = self.data[:self.size].decode("utf-8")
+    
+    def __str__(self):
+        return f"MODL(filename: \"{self.filename}\", size: {self.size}, data: u8[{len(self.data)}])"
+    
+    def __repr__(self):
+        return self.__str__()
+
+class SCIT:
+    def __init__(self, size, data):
+        self.size = size
+        self.data = data
+
+        self.form_id = int.from_bytes(self.data[:4], "little")
+        self.school = int.from_bytes(self.data[4:8], "little")
+        self.visual_effect = int.from_bytes(self.data[8:12], "little")
+        self.flags = int.from_bytes(self.data[12:16], "little")
+        
+
+class SPIT:
+    def __init__(self, size, data):
+        self.size = size
+        self.data = data
+
+        self._type = int.from_bytes(self.data[:4], "little")
+        self.spell_cost = int.from_bytes(self.data[4:8], "little")
+        self.spell_level = int.from_bytes(self.data[8:12], "little")
+        self.flags = int.from_bytes(self.data[12:16], "little")
+    
+    def __str__(self):
+        return f"SPIT(type: {hex(self._type)}, spell_cost: {self.spell_cost}, " \
+                    f"spell_level: {self.spell_level}, flags: {bin(self.flags)}, " \
+                    f"size: {self.size}, data: u8[{len(self.data)}])"
+    def __repr__(self):
+        return self.__str__()
+    
