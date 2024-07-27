@@ -190,37 +190,31 @@ class ChangeRecord:
 
 
         match self.cr_type:
-            case 6:
-                print("FACT")
-                self.subrecords.append(FACT(self.cr_flags, self.data_size, self.data))
-                print(self.subrecords[-1])
+            case 6: self.subrecords.append(FACT(self.cr_flags, self.data_size, self.data))
             case 19:
                 # print("APPA")
                 pass
             case 20:
                 # print("ARMO")
                 pass
-            case 21:
-                # print("BOOK")
-                self.subrecords.append(BOOK(self.cr_flags, self.data_size, self.data))
-                # print(self.subrecords[-1])
+            case 21: self.subrecords.append(BOOK(self.cr_flags, self.data_size, self.data))
             case 22:
-                # print("CLOT")
+                print("CLOT")
                 pass
             case 25:
-                # print("INGR")
+                print("INGR")
                 pass
             case 26:
-                # print("LIGH")
+                print("LIGH")
                 pass
             case 27:
-                # print("MISC")
+                print("MISC")
                 pass
             case 33:
-                # print("WEAP")
+                print("WEAP")
                 pass
             case 34:
-                # print("AMMO")
+                print("AMMO")
                 pass
             case 35:
                 # print("NPC_")
@@ -229,11 +223,9 @@ class ChangeRecord:
                 # print("CREA")
                 pass
             case 38:
-                # print("SLGM")
+                print("SLGM")
                 pass
-            case 39:
-                # print("KEYM")
-                pass
+            case 39: self.subrecords.append(KEYM(self.cr_flags, self.data_size, self.data))
             case 40:
                 # print("ALCH")
                 pass
@@ -344,6 +336,30 @@ class FACT:
     def __repr__(self):
         return self.__str__()
 
+class KEYM:
+    def __init__(self, cr_flags, size, data):
+        self.cr_flags = cr_flags
+        self.size = size
+        self.data = data
+        # optional fields
+        self.form_flags = None
+        self.value = None
+
+        offset = 0
+
+        if cr_flags & 0x00000001:
+            self.form_flags = int.from_bytes(self.data[:4], "little")
+            offset += 4
+        if cr_flags & 0x00000008:
+            self.value = int.from_bytes(self.data[offset:offset+4], "little")
+
+    def __str__(self, depth=0):
+        return "   "*depth + "KEYM {\n" + \
+               "   "*(depth+1) + f"cr_flags: {self.cr_flags},\n" + \
+               "   "*(depth+1) + f"form_flags: {bin(self.form_flags)},\n" + \
+               "   "*(depth+1) + f"value: {self.value},\n" + \
+               "   "*(depth) + "}"
+
 
 
 class SubRecord:
@@ -398,31 +414,18 @@ class FieldRecord:
         self.record = None
 
         match self._type:
-            case b"ANAM":
-                self.record = ANAM(self.size, self.data)
-            case b"DATA":
-                self.record = DATA(self.size, self.data)
-            case b"EFID":
-                self.record = EFID(self.size, self.data)
-            case b"EFIT":
-                self.record = EFIT(self.size, self.data)
-            case b"ENAM":
-                self.record = ENAM(self.size, self.data)
-            case b"ENIT":
-                self.record = ENIT(self.size, self.data)
-            case b"FULL":
-                self.record = FULL(self.size, self.data)
-            case b"ICON":
-                self.record = ICON(self.size, self.data)
-            case b"MODB":
-                self.record = MODB(self.size, self.data)
-            case b"MODL":
-                self.record = MODL(self.size, self.data)
-            case b"SPIT":
-                self.record = SPIT(self.size, self.data)
-            case _:
-                print(f"[E] Unknown field record type: {self._type}")
-                self.record = None
+            case b"ANAM": self.record = ANAM(self.size, self.data)
+            case b"DATA": self.record = DATA(self.size, self.data)
+            case b"EFID": self.record = EFID(self.size, self.data)
+            case b"EFIT": self.record = EFIT(self.size, self.data)
+            case b"ENAM": self.record = ENAM(self.size, self.data)
+            case b"ENIT": self.record = ENIT(self.size, self.data)
+            case b"FULL": self.record = FULL(self.size, self.data)
+            case b"ICON": self.record = ICON(self.size, self.data)
+            case b"MODB": self.record = MODB(self.size, self.data)
+            case b"MODL": self.record = MODL(self.size, self.data)
+            case b"SPIT": self.record = SPIT(self.size, self.data)
+            case _: print(f"[E] Unknown field record type: {self._type}")
 
     def __str__(self, depth=0):
         return "   "*depth + "FieldRecord {\n" + \
