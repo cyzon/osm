@@ -11,10 +11,16 @@ def main():
     save = OblivionSave("C:\\Users\\Czyzx\\Documents\\My Games\\Oblivion\\Saves\\autosave.ess")
     
     pprint(save.file_header)
-    pprint(save.save_header.screenshot.width)
+    pprint(save.save_header)
     pprint(save.plugins)
+    pprint(save.globals)
+    pprint(save.change_records)
+    pprint(save.temporary_effects)
+    pprint(save.form_ids)
+    pprint(save.worldspaces)
 
     # breakpoint()
+
 
 if __name__ == "__main__":
     main()

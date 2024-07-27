@@ -32,16 +32,8 @@ class OblivionSaveReader:
         screenshot = self.read_screenshot()
 
         return SaveHeader(
-            header_version,
-            save_header_size,
-            save_num,
-            pc_name,
-            pc_level,
-            pc_cell_name,
-            game_days,
-            game_ticks,
-            game_time,
-            screenshot
+            header_version, save_header_size, save_num, pc_name, pc_level,
+            pc_cell_name, game_days, game_ticks, game_time, screenshot
         )
 
     def read_plugins(self):
@@ -137,6 +129,40 @@ class OblivionSaveReader:
             pc_combat_count, created_num, created_records, quick_keys_size, quick_keys_data, reticle_size,
             reticle_data, interface_size, interface_data, regions_save, regions_num, regions_data
         )
+
+    def read_change_records(self, records_num):
+        change_records: list[ChangeRecord] = []
+
+        for _ in range(records_num):
+            form_id = self.read_u32()
+            _type = self.read_u8()
+            flags = self.read_u32()
+            version = self.read_u8()
+            data_size = self.read_u16()
+            data = self.read_bytes(data_size)
+
+            record = ChangeRecord(form_id, _type, flags, version, data_size, data)
+            change_records.append(record)
+        
+        return change_records
+
+    def read_temporary_effects(self):
+        temporary_effects_size = self.read_u32()
+        temporary_effects_data = self.read_bytes(temporary_effects_size)
+
+        return TemporaryEffects(temporary_effects_size, temporary_effects_data)
+
+    def read_form_ids(self):
+        form_ids_num = self.read_u32()
+        form_ids = [self.read_u32() for _ in range(form_ids_num)]
+
+        return FormIds(form_ids_num, form_ids)
+
+    def read_world_spaces(self):
+        world_spaces_num = self.read_u32()
+        world_spaces = [self.read_u32() for _ in range(world_spaces_num)]
+
+        return WorldSpaces(world_spaces_num, world_spaces)
 
     def read_formatted(self, format, length, offset):
         if offset:

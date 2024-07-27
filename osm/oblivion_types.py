@@ -1,42 +1,5 @@
 from dataclasses import dataclass
 
-# 6	    FACT	Factions
-# 19	APPA	Alchemical Apparatus
-# 20	ARMO	Armor
-# 21	BOOK	Books
-# 22	CLOT	Clothing
-# 25	INGR	Ingredients
-# 26	LIGH	Lights
-# 27	MISC	Misc. Items
-# 33	WEAP	Weapons
-# 34	AMMO	Arrows
-# 35	NPC_	Player and NPC data: attributes, spells, factions, etc.
-#               These changes affect all instances of objects.
-#               The change record for FormId 0x00000007 contains player character data (see also ACHR).
-# 36	CREA	Creature information (rats, horses, hostile creatures.)
-#               These changes affect all instances of objects.
-# 38	SLGM	Soul gems
-# 39	KEYM	Keys
-# 40	ALCH	Alchemy (potions)
-# 48	CELL	Cells
-# 49	REFR	Placed instances of inanimate objects (containers, dropped items, chairs, doors, etc.)
-# 50	ACHR	Placed instances of PC (player character) and NPCs (non-player characters).
-#               The change record for FormId 0x00000014 (20) contains player character data (see also NPC_).
-# 51	ACRE	Placed instances of creatures.
-# 58	INFO	Dialog entries.
-# 59	QUST	Quest information
-# 61	PACK	AI Packages.
-#
-# Source: https://en.uesp.net/wiki/Oblivion_Mod:Save_File_Format#ChangeRecords
-
-change_record_types = {
-     6: "FACT", 19: "APPA", 20: "ARMO", 21: "BOOK", 22: "CLOT", 25: "INGR",
-    26: "LIGH", 27: "MISC", 33: "WEAP", 34: "AMMO", 35: "NPC_", 36: "CREA",
-    38: "SLGM", 39: "KEYM", 40: "ALCH", 48: "CELL", 49: "REFR", 50: "ACHR",
-    51: "ACRE", 58: "INFO", 59: "QUST", 61: "PACK",
-
-}
-
 @dataclass
 class Screenshot:
     size: int
@@ -61,14 +24,6 @@ class CreatedRecord:
     data: bytes
     # TODO: fields: list[FieldRecord]
 
-@dataclass
-class ChangeRecord:
-    form_id: int
-    _type: int
-    flags: int
-    version: int
-    data_size: int
-    data: bytes
 
 @dataclass
 class FileHeader:
@@ -123,4 +78,66 @@ class Globals:
     regions_size: int
     regions_num: int
     regions: dict[int, int]
+
+
+{
+# 6	    FACT	Factions
+# 19	APPA	Alchemical Apparatus
+# 20	ARMO	Armor
+# 21	BOOK	Books
+# 22	CLOT	Clothing
+# 25	INGR	Ingredients
+# 26	LIGH	Lights
+# 27	MISC	Misc. Items
+# 33	WEAP	Weapons
+# 34	AMMO	Arrows
+# 35	NPC_	Player and NPC data: attributes, spells, factions, etc.
+#               These changes affect all instances of objects.
+#               The change record for FormId 0x00000007 contains player character data (see also ACHR).
+# 36	CREA	Creature information (rats, horses, hostile creatures.)
+#               These changes affect all instances of objects.
+# 38	SLGM	Soul gems
+# 39	KEYM	Keys
+# 40	ALCH	Alchemy (potions)
+# 48	CELL	Cells
+# 49	REFR	Placed instances of inanimate objects (containers, dropped items, chairs, doors, etc.)
+# 50	ACHR	Placed instances of PC (player character) and NPCs (non-player characters).
+#               The change record for FormId 0x00000014 (20) contains player character data (see also NPC_).
+# 51	ACRE	Placed instances of creatures.
+# 58	INFO	Dialog entries.
+# 59	QUST	Quest information
+# 61	PACK	AI Packages.
+#
+# Source: https://en.uesp.net/wiki/Oblivion_Mod:Save_File_Format#ChangeRecords
+}
+change_record_types = {
+     6: "FACT", 19: "APPA", 20: "ARMO", 21: "BOOK", 22: "CLOT", 25: "INGR",
+    26: "LIGH", 27: "MISC", 33: "WEAP", 34: "AMMO", 35: "NPC_", 36: "CREA",
+    38: "SLGM", 39: "KEYM", 40: "ALCH", 48: "CELL", 49: "REFR", 50: "ACHR",
+    51: "ACRE", 58: "INFO", 59: "QUST", 61: "PACK",
+
+}
+@dataclass
+class ChangeRecord:
+    form_id: int
+    _type: int
+    flags: int
+    version: int
+    data_size: int
+    data: bytes
+
+@dataclass
+class TemporaryEffects:
+    size: int
+    data: bytes
+
+@dataclass
+class FormIds:
+    num: int
+    ids: list[int]
+
+@dataclass
+class WorldSpaces:
+    num: int
+    spaces: list[int]
 
