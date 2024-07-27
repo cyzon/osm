@@ -56,7 +56,7 @@ class CreatedRecord:
             offset += 6 + field_size
 
     def __str__(self, depth=0):
-        ret = "    "*depth + "ChangeRecord {\n" + \
+        ret = "    "*depth + "CreateRecord {\n" + \
               "    "*(depth+1)+ f"record_type: {self.record_type},\n" + \
               "    "*(depth+1)+ f"size: {self.size},\n" + \
               "    "*(depth+1)+ f"flags: {self.flags},\n" + \
@@ -159,21 +159,139 @@ class Globals:
 #
 # Source: https://en.uesp.net/wiki/Oblivion_Mod:Save_File_Format#ChangeRecords
 }
-change_record_types = {
+cr_type_names = {
      6: "FACT", 19: "APPA", 20: "ARMO", 21: "BOOK", 22: "CLOT", 25: "INGR",
     26: "LIGH", 27: "MISC", 33: "WEAP", 34: "AMMO", 35: "NPC_", 36: "CREA",
     38: "SLGM", 39: "KEYM", 40: "ALCH", 48: "CELL", 49: "REFR", 50: "ACHR",
     51: "ACRE", 58: "INFO", 59: "QUST", 61: "PACK",
 
 }
-@dataclass
+
 class ChangeRecord:
     form_id: int
     _type: int
-    flags: int
+    cr_flags: int
     version: int
     data_size: int
     data: bytes
+
+    def __init__(self, form_id, cr_type, cr_flags, version, data_size, data):
+        self.cr_form_id = form_id
+        self.cr_type = cr_type
+        self.cr_flags = cr_flags
+        self.version = version
+        self.data_size = data_size
+        self.data = data
+        self.subrecords = []
+
+        self.has_form_flags = bool(self.cr_flags & 0x00000001)
+
+        # print(cr_type_names[self._type])
+
+
+        match self.cr_type:
+            case 6:
+                # print("FACT")
+                pass
+            case 19:
+                # print("APPA")
+                pass
+            case 20:
+                # print("ARMO")
+                pass
+            case 21:
+                print("BOOK")
+                self.subrecords.append(BOOK(self.cr_flags, self.data_size, self.data))
+            case 22:
+                # print("CLOT")
+                pass
+            case 25:
+                # print("INGR")
+                pass
+            case 26:
+                # print("LIGH")
+                pass
+            case 27:
+                # print("MISC")
+                pass
+            case 33:
+                # print("WEAP")
+                pass
+            case 34:
+                # print("AMMO")
+                pass
+            case 35:
+                # print("NPC_")
+                pass
+            case 36:
+                # print("CREA")
+                pass
+            case 38:
+                # print("SLGM")
+                pass
+            case 39:
+                # print("KEYM")
+                pass
+            case 40:
+                # print("ALCH")
+                pass
+            case 48:
+                # print("CELL")
+                pass
+            case 49:
+                # print("REFR")
+                pass
+            case 50:
+                # print("ACHR")
+                pass
+            case 51:
+                # print("ACRE")
+                pass
+            case 58:
+                # print("INFO")
+                pass
+            case 59:
+                # print("QUST")
+                pass
+            case 61:
+                # print("PACK")
+                pass
+            case _:
+                print(f"[E] Unknown change record type: {self.cr_type}")
+
+class BOOK:
+    def __init__(self, cr_flags, size, data):
+        self.size = size
+        self.data = data
+
+class SubRecord:
+    def __init__(self, rec_type, size, flags, form_id, version, data):
+        self.form_id = form_id
+        self.rec_type = rec_type
+        self.flags = flags
+        self.version = version
+        self.data_size = size
+        self.data = data
+        self.record = None
+
+        # Is the data compressed?
+        if self.flags & 0x00040000:
+            print(f"[E] Compressed data: {self.rec_type}: ")
+            self.record = None
+        elif self.rec_type not in cr_type_names:
+            print(f"[E] Unknown subrecord type: {self.rec_type}: ")
+            self.record = None
+
+        # match self.rec_type:
+        #     case b"ACHR":
+        #         print("ACHR")
+        #     case _:
+        #         # print(f"[E] Unknown subrecord type: {self.rec_type}: ")
+        #         self.record = None
+        
+        # breakpoint()
+
+        
 
 @dataclass
 class TemporaryEffects:
@@ -195,7 +313,7 @@ class FieldRecord:
         self._type = type
         self.size = size
         self.data = data
-        self.record: FieldRecord
+        self.record = None
 
         match self._type:
             case b"ANAM":
@@ -274,7 +392,6 @@ class DATA:
     
     def __repr__(self):
         return self.__str__()
-
 
 # Contains the form ID for a magic effect. (MGEF)
 # https://en.uesp.net/wiki/Skyrim_Mod:Mod_File_Format/MGEF
@@ -426,7 +543,6 @@ class SCIT:
     
     def __repr__(self):
         return self.__str__()
-        
 
 class SPIT:
     def __init__(self, size, data):

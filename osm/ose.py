@@ -40,11 +40,11 @@ def text_dump(save: OblivionSave):
     pprint({"created_num": save.globals.created_num})
     pprint({"created_records": save.globals.created_records})
     print("CreatedRecords: {")
-    for record in save.globals.created_records:
-        tmp = {k: record.__dict__[k] for k in record.__dict__.keys() - {"fields", "data"}}
-        # pprint(str(tmp))
-        print(str(record))
-        # pprint(record.fields)
+    # for record in save.globals.created_records:
+    #     tmp = {k: record.__dict__[k] for k in record.__dict__.keys() - {"fields", "data"}}
+    #     # pprint(str(tmp))
+    #     print(str(record))
+    #     # pprint(record.fields)
     pprint({"quick_keys_size": save.globals.quick_keys_size})
     print({"quick_keys_data": save.globals.quick_keys_data})
     pprint({"reticle_size": save.globals.reticle_size})
@@ -58,10 +58,15 @@ def text_dump(save: OblivionSave):
         print(chunk)
     print("}")
 
+    print("Change Records: {")
+    for record in save.change_records[0:2]:
+        print(record)
+    print("}")
+
 def main():
     save = OblivionSave("C:\\Users\\Czyzx\\Documents\\My Games\\Oblivion\\Saves\\autosave.ess")
 
-    text_dump(save)
+    # text_dump(save)
 
 
     # breakpoint()

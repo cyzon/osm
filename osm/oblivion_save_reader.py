@@ -129,6 +129,7 @@ class OblivionSaveReader:
             reticle_data, interface_size, interface_data, regions_save, regions_num, regions_data
         )
 
+    # Reads `records_num` change records from the file.  The `ChangeRecord` ctor processes subrecords.
     def read_change_records(self, records_num):
         change_records: list[ChangeRecord] = []
 
@@ -139,7 +140,7 @@ class OblivionSaveReader:
             version = self.read_u8()
             data_size = self.read_u16()
             data = self.read_bytes(data_size)
-
+            # Subrecord processing is done in the ChangeRecord ctor.
             record = ChangeRecord(form_id, _type, flags, version, data_size, data)
             change_records.append(record)
         
