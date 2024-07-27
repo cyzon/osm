@@ -191,8 +191,9 @@ class ChangeRecord:
 
         match self.cr_type:
             case 6:
-                # print("FACT")
-                pass
+                print("FACT")
+                self.subrecords.append(FACT(self.cr_flags, self.data_size, self.data))
+                print(self.subrecords[-1])
             case 19:
                 # print("APPA")
                 pass
@@ -200,8 +201,9 @@ class ChangeRecord:
                 # print("ARMO")
                 pass
             case 21:
-                print("BOOK")
+                # print("BOOK")
                 self.subrecords.append(BOOK(self.cr_flags, self.data_size, self.data))
+                # print(self.subrecords[-1])
             case 22:
                 # print("CLOT")
                 pass
@@ -259,10 +261,90 @@ class ChangeRecord:
             case _:
                 print(f"[E] Unknown change record type: {self.cr_type}")
 
+#   The Form Flags subrecord is present when bit 0 (0x00000001) is set in any 
+# change record's overall Flags. Its length is a constant 4 bytes.
+# The Value subrecord is present when bit 3 (0x00000008) is set in any change
+# record's overall Flags. Its length is a constant 4 bytes.
+# The Teaches subrecord is present when bit 2 (0x00000004) is set in any change
+# record's overall Flags. Its length is a constant 1 byte. A value of 255
+# indicates that the book teaches has been read and teaches no skills.
 class BOOK:
     def __init__(self, cr_flags, size, data):
+        self.cr_flags = cr_flags
         self.size = size
         self.data = data
+        # optional fields
+        self.form_flags = None
+        self.value = None
+        self.teaches = None
+
+        offset = 0
+
+        if cr_flags & 0x00000001:
+            self.form_flags = int.from_bytes(self.data[:4], "little")
+            offset += 4
+        if cr_flags & 0x00000008:
+            self.value = int.from_bytes(self.data[offset:offset+4], "little")
+            offset += 4
+        if cr_flags & 0x00000004:
+            self.teaches = int.from_bytes(self.data[offset:offset+1], "little")
+    
+    def __str__(self, depth=0):
+        return "   "*depth + "BOOK {\n" + \
+               "   "*(depth+1) + f"cr_flags: {self.cr_flags},\n" + \
+               "   "*(depth+1) + f"form_flags: {self.form_flags},\n" + \
+               "   "*(depth+1) + f"value: {self.value},\n" + \
+               "   "*(depth+1) + f"teaches: {self.teaches},\n" + \
+               "   "*(depth) + "}"
+    
+    def __repr__(self):
+        return self.__str__()
+    
+class FACT:
+    def __init__(self, cr_flags, size, data):
+        self.cr_flags = cr_flags
+        self.size = size
+        self.data = data
+        # optional fields
+        self.reactions_num = None
+        self.reactions = None
+        self.flags = None
+
+        offset = 0
+
+        if cr_flags & 0x00000008:
+            self.reactions_num = int.from_bytes(self.data[:2], "little")
+            self.reactions = []
+
+            for _ in range(self.reactions_num):
+                self.reactions.append(
+                    (int.from_bytes(self.data[offset:offset+4], "little"),
+                    int.from_bytes(self.data[offset+4:offset+8], "little")))
+                offset += 8
+                
+            offset += 2
+
+        if cr_flags & 0x00000004:
+            self.flags = int.from_bytes(self.data[offset:offset+1], "little")
+
+
+    def __str__(self, depth=0):
+        ret =  "   "*depth + "FACT {\n" + \
+               "   "*(depth+1) + f"cr_flags: {self.cr_flags},\n" + \
+               "   "*(depth+1) + f"reactions_num: {self.reactions_num},\n"
+        
+        for reaction in self.reactions:
+            ret += "   "*(depth+2) + f"reaction: ({reaction[0]}, {reaction[1]}),\n"
+
+        ret += "   "*(depth+1) + f"flags: {self.flags},\n" + \
+               "   "*(depth) + "}"
+        
+        return ret
+    
+    def __repr__(self):
+        return self.__str__()
+
+
 
 class SubRecord:
     def __init__(self, rec_type, size, flags, form_id, version, data):
