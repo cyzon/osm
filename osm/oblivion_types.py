@@ -236,8 +236,8 @@ class ChangeRecord:
                 # print("ACHR")
                 pass
             case 51:
-                # print("ACRE")
-                pass
+                self.subrecords.append(ACRE(self.cr_form_id, self.cr_flags, self.data_size, self.data))
+                print(self.subrecords[-1])
             case 58:
                 self.subrecords.append(INFO(self.cr_form_id, self.cr_flags, self.data_size, self.data))
                 # print(self.subrecords[-1])
@@ -245,10 +245,119 @@ class ChangeRecord:
                 self.subrecords.append(QUST(self.cr_form_id, self.cr_flags, self.data_size, self.data))
                 # print(self.subrecords[-1])
             case 61:
-                print("PACK")
-                pass
+                self.subrecords.append(PACK(self.cr_form_id, self.cr_flags, self.data_size, self.data))
+                # print(self.subrecords[-1])
             case _:
                 print(f"[E] Unknown change record type: {self.cr_type}")
+
+# https://en.uesp.net/wiki/Oblivion_Mod:Save_File_Format/ACHR#Cell_Changed
+class ACRE:
+    def __init__(self, form_id, cr_flags, size, data):
+        self.form_id = form_id
+        self.cr_flags = cr_flags
+        self.size = size
+        self.data = data
+        # optional fields
+        self.cell_changed = None
+        self.created = None
+        self.moved = None
+        self.havoc_moved = None
+        self.oblivion_flag = None
+        self.actor_flag = None
+        self.form_flags = None
+        self.inventory = None
+        self.properties = None
+
+        offset = 0
+
+        # Cell Changed
+        # https://en.uesp.net/wiki/Oblivion_Mod:Save_File_Format/ACHR#Cell_Changed
+        if cr_flags & 0x80000000:
+            self.cell_changed = {}
+            self.cell_changed["cell"] = int.from_bytes(self.data[offset:offset+4], "little")
+            self.cell_changed["x"] = struct.unpack("f", self.data[offset+4:offset+8])[0]
+            self.cell_changed["y"] = struct.unpack("f", self.data[offset+8:offset+12])[0]
+            self.cell_changed["z"] = struct.unpack("f", self.data[offset+12:offset+16])[0]
+            offset += 16
+        # Created
+        # https://en.uesp.net/wiki/Oblivion_Mod:Save_File_Format/ACHR#Created
+        if cr_flags & 0x00000002:
+            self.created = {}
+            self.created["flags"] = int.from_bytes(self.data[offset:offset+4], "little")
+            self.created["base_item"] = int.from_bytes(self.data[offset+4:offset+8], "little")
+            self.created["cell"] = int.from_bytes(self.data[offset+8:offset+12], "little")
+            self.created["x"] = struct.unpack("f", self.data[offset+12:offset+16])[0]
+            self.created["y"] = struct.unpack("f", self.data[offset+16:offset+20])[0]
+            self.created["z"] = struct.unpack("f", self.data[offset+20:offset+24])[0]
+            self.created["rx"] = struct.unpack("f", self.data[offset+24:offset+28])[0]
+            self.created["ry"] = struct.unpack("f", self.data[offset+28:offset+32])[0]
+            self.created["rz"] = struct.unpack("f", self.data[offset+32:offset+36])[0]
+            offset += 36
+        # Moved
+        # https://en.uesp.net/wiki/Oblivion_Mod:Save_File_Format/ACHR#Moved
+        if cr_flags & 0x00000004:
+            self.moved = {}
+            self.moved["cell"] = int.from_bytes(self.data[offset:offset+4], "little")
+            self.moved["x"] = struct.unpack("f", self.data[offset+4:offset+8])[0]
+            self.moved["y"] = struct.unpack("f", self.data[offset+8:offset+12])[0]
+            self.moved["z"] = struct.unpack("f", self.data[offset+12:offset+16])[0]
+            self.moved["rx"] = struct.unpack("f", self.data[offset+16:offset+20])[0]
+            self.moved["ry"] = struct.unpack("f", self.data[offset+20:offset+24])[0]
+            self.moved["rz"] = struct.unpack("f", self.data[offset+24:offset+28])[0]
+            offset += 28
+        # Havoc Moved
+        # https://en.uesp.net/wiki/Oblivion_Mod:Save_File_Format/ACHR#Havok_Moved
+        #   The Havoc Moved subrecord is present when bit 3 (0x00000008) is set in the overall Flags
+        # but only if neither bit 1 (0x00000002) nor bit 2 (0x00000004) are set. If either  bit 1 or
+        # bit 2 are set, skip parsing this subrecord.
+        if bool(cr_flags & 0x00000008):
+            if not bool(cr_flags & 0x00000002) and not bool(cr_flags & 0x00000004):
+                self.havoc_moved = {}
+                self.havoc_moved["cell"] = int.from_bytes(self.data[offset:offset+4], "little")
+                self.havoc_moved["x"] = struct.unpack("f", self.data[offset:offset+4])[0]
+                self.havoc_moved["y"] = struct.unpack("f", self.data[offset+4:offset+8])[0]
+                self.havoc_moved["z"] = struct.unpack("f", self.data[offset+8:offset+12])[0]
+                self.havoc_moved["rx"] = struct.unpack("f", self.data[offset+12:offset+16])[0]
+                self.havoc_moved["ry"] = struct.unpack("f", self.data[offset+16:offset+20])[0]
+                self.havoc_moved["rz"] = struct.unpack("f", self.data[offset+20:offset+24])[0]
+                offset += 24
+        # Oblivion Flag
+        # https://en.uesp.net/wiki/Oblivion_Mod:Save_File_Format/ACHR#Oblivion_Flag
+        if cr_flags & 0x00800000:
+            self.oblivion_flag = int.from_bytes(self.data[offset:offset+4], "little")
+            offset += 4
+        # Actor Flag
+        # https://en.uesp.net/wiki/Oblivion_Mod:Save_File_Format/ACHR#Actor_Flag
+        self.actor_flag = int.from_bytes(self.data[offset:offset+1], "little")
+        offset += 1
+        # Form Flags
+        # https://en.uesp.net/wiki/Oblivion_Mod:Save_File_Format/ACHR#Form_Flags
+        if cr_flags & 0x00000001:
+            self.form_flags = int.from_bytes(self.data[offset:offset+4], "little")
+            offset += 4
+        # Inventory
+        # https://en.uesp.net/wiki/Oblivion_Mod:Save_File_Format/ACHR#Inventory
+
+
+
+    def __str__(self, depth=0):
+        return "   "*depth + "ACRE {\n" + \
+            "   "*(depth+1) + f"form_id: {hex(self.form_id)},\n" + \
+            "   "*(depth+1) + f"cr_flags: {bin(self.cr_flags)},\n" + \
+            "   "*(depth+1) + f"cell_changed: {self.cell_changed},\n" + \
+            "   "*(depth+1) + f"created: {self.created},\n" + \
+            "   "*(depth+1) + f"moved: {self.moved},\n" + \
+            "   "*(depth+1) + f"havoc_moved: {self.havoc_moved},\n" + \
+            "   "*(depth+1) + f"oblivion_flag: {self.oblivion_flag},\n" + \
+            "   "*(depth+1) + f"actor_flag: {bin(self.actor_flag)},\n" + \
+            "   "*(depth+1) + f"form_flags: {bin(self.form_flags) if self.form_flags else None},\n" + \
+            "   "*(depth+1) + f"inventory: {self.inventory},\n" + \
+            "   "*(depth+1) + f"properties: {self.properties},\n" + \
+            "   "*(depth) + "}"
+
+    def __repr__(self):
+        return self.__str__()
+
 
 #   The Form Flags subrecord is present when bit 0 (0x00000001) is set in any 
 # change record's overall Flags. Its length is a constant 4 bytes.
@@ -509,6 +618,25 @@ class KEYM:
     def __repr__(self):
         return self.__str__()
 
+class PACK:
+    def __init__(self, form_id, cr_flags, size, data):
+        self.form_id = form_id
+        self.cr_flags = cr_flags
+        self.size = size
+        self.data = data
+        # optional fields
+        self.never_run = bool(cr_flags & 0x10000000)
+
+    def __str__(self, depth=0):
+        return "   "*depth + "PACK {\n" + \
+               "   "*(depth+1) + f"form_id: {hex(self.form_id)},\n" + \
+               "   "*(depth+1) + f"cr_flags: {self.cr_flags},\n" + \
+               "   "*(depth+1) + f"never_run: {self.never_run},\n" + \
+               "   "*(depth) + "}"
+    
+    def __repr__(self):
+        return self.__str__()
+
 class QUST:
     def __init__(self, form_id, cr_flags, size, data):
         self.form_id = form_id
@@ -574,7 +702,6 @@ class QUST:
     def __repr__(self):
         return self.__str__()
         
-
 class WEAP:
     def __init__(self, form_id, cr_flags, size, data):
         self.form_id = form_id
