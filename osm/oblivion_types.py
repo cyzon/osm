@@ -190,46 +190,42 @@ class ChangeRecord:
 
         match self.cr_type:
             case 6:
-                self.subrecords.append(FACT(self.cr_flags, self.data_size, self.data))
-                print(self.subrecords[-1])
+                self.subrecords.append(FACT(self.cr_form_id, self.cr_flags, self.data_size, self.data))
+                # print(self.subrecords[-1])
             case 19:
                 print("APPA")
-                pass
             case 20:
                 print("ARMO")
-                pass
-            case 21: self.subrecords.append(BOOK(self.cr_flags, self.data_size, self.data))
+            case 21:
+                self.subrecords.append(BOOK(self.cr_form_id, self.cr_flags, self.data_size, self.data))
+                # print(self.subrecords[-1])
             case 22:
                 print("CLOT")
-                pass
             case 25:
                 print("INGR")
-                pass
             case 26:
                 print("LIGH")
-                pass
             case 27:
                 print("MISC")
-                pass
             case 33:
-                self.subrecords.append(WEAP(self.cr_flags, self.data_size, self.data))
+                self.subrecords.append(WEAP(self.cr_form_id, self.cr_flags, self.data_size, self.data))
+                # print(self.subrecords[-1])
             case 34:
                 print("AMMO")
-                pass
             case 35:
                 # print("NPC_")
                 pass
-            case 36:
-                print("CREA")
+            case 36: 
                 self.subrecords.append(CREA(self.cr_flags, self.data_size, self.data))
-                print(self.subrecords[-1])
+                # print(self.subrecords[-1])
             case 38:
                 print("SLGM")
                 pass
-            case 39: self.subrecords.append(KEYM(self.cr_flags, self.data_size, self.data))
+            case 39: 
+                self.subrecords.append(KEYM(self.cr_form_id, self.cr_flags, self.data_size, self.data))
+                # print(self.subrecords[-1])
             case 40:
-                # print("ALCH")
-                pass
+                print("ALCH")
             case 48:
                 # print("CELL")
                 pass
@@ -243,13 +239,13 @@ class ChangeRecord:
                 # print("ACRE")
                 pass
             case 58:
-                # print("INFO")
-                pass
+                self.subrecords.append(INFO(self.cr_form_id, self.cr_flags, self.data_size, self.data))
+                # print(self.subrecords[-1])
             case 59:
-                # print("QUST")
-                pass
+                self.subrecords.append(QUST(self.cr_form_id, self.cr_flags, self.data_size, self.data))
+                # print(self.subrecords[-1])
             case 61:
-                # print("PACK")
+                print("PACK")
                 pass
             case _:
                 print(f"[E] Unknown change record type: {self.cr_type}")
@@ -262,7 +258,8 @@ class ChangeRecord:
 # record's overall Flags. Its length is a constant 1 byte. A value of 255
 # indicates that the book teaches has been read and teaches no skills.
 class BOOK:
-    def __init__(self, cr_flags, size, data):
+    def __init__(self, form_id, cr_flags, size, data):
+        self.form_id = form_id
         self.cr_flags = cr_flags
         self.size = size
         self.data = data
@@ -284,6 +281,7 @@ class BOOK:
     
     def __str__(self, depth=0):
         return "   "*depth + "BOOK {\n" + \
+               "   "*(depth+1) + f"form_id: {hex(self.form_id)},\n" + \
                "   "*(depth+1) + f"cr_flags: {self.cr_flags},\n" + \
                "   "*(depth+1) + f"form_flags: {self.form_flags},\n" + \
                "   "*(depth+1) + f"value: {self.value},\n" + \
@@ -412,15 +410,14 @@ class CREA:
                "   "*(depth+1) + f"skills: {self.skills},\n" + \
                "   "*(depth+1) + f"combat_style: {self.combat_style},\n" + \
                "   "*(depth+1) + f"base_modifiers: {self.base_modifiers},\n" + \
-                "   "*(depth+1) + f"size: {self.size},\n" + \
-               "   "*(depth+1) + f"data: {self.data},\n" + \
                "   "*(depth) + "}"
     
     def __repr__(self):
         return self.__str__()
 
 class FACT:
-    def __init__(self, cr_flags, size, data):
+    def __init__(self, form_id, cr_flags, size, data):
+        self.form_id = form_id
         self.cr_flags = cr_flags
         self.size = size
         self.data = data
@@ -449,6 +446,7 @@ class FACT:
 
     def __str__(self, depth=0):
         ret =  "   "*depth + "FACT {\n" + \
+               "   "*(depth+1) + f"form_id: {hex(self.form_id)},\n" + \
                "   "*(depth+1) + f"cr_flags: {self.cr_flags},\n" + \
                "   "*(depth+1) + f"reactions_num: {self.reactions_num},\n"
         
@@ -463,8 +461,28 @@ class FACT:
     def __repr__(self):
         return self.__str__()
 
+class INFO:
+    def __init__(self, form_id, cr_flags, size, data):
+        self.form_id = form_id
+        self.cr_flags = cr_flags
+        self.size = size
+        self.data = data
+        # optional fields
+        self.topic_once_said = bool(cr_flags & 0x10000000)
+
+    def __str__(self, depth=0):
+        return "   "*depth + "INFO {\n" + \
+               "   "*(depth+1) + f"form_id: {hex(self.form_id)},\n" + \
+               "   "*(depth+1) + f"cr_flags: {self.cr_flags},\n" + \
+               "   "*(depth+1) + f"topic_once_said: {self.topic_once_said},\n" + \
+               "   "*(depth) + "}"
+    
+    def __repr__(self):
+        return self.__str__()
+
 class KEYM:
-    def __init__(self, cr_flags, size, data):
+    def __init__(self, form_id, cr_flags, size, data):
+        self.form_id = form_id
         self.cr_flags = cr_flags
         self.size = size
         self.data = data
@@ -482,6 +500,7 @@ class KEYM:
 
     def __str__(self, depth=0):
         return "   "*depth + "KEYM {\n" + \
+               "   "*(depth+1) + f"form_id: {hex(self.form_id)},\n" + \
                "   "*(depth+1) + f"cr_flags: {self.cr_flags},\n" + \
                "   "*(depth+1) + f"form_flags: {bin(self.form_flags)},\n" + \
                "   "*(depth+1) + f"value: {self.value},\n" + \
@@ -490,8 +509,75 @@ class KEYM:
     def __repr__(self):
         return self.__str__()
 
+class QUST:
+    def __init__(self, form_id, cr_flags, size, data):
+        self.form_id = form_id
+        self.cr_flags = cr_flags
+        self.size = size
+        self.data = data
+        # optional fields
+        self.flags = None
+        self.quest_stages = None
+        self.quest_script = None
+
+        offset = 0
+
+        # Quest Flags
+        if cr_flags & 0x00000004:
+            self.flags = int.from_bytes(self.data[:1], "little")
+            offset += 1
+        # Quest Stages
+        if cr_flags & 0x10000000:
+            self.quest_stages_num = int.from_bytes(self.data[offset:offset+1], "little")
+            offset += 1
+
+            self.quest_stages = []
+
+            for i in range(self.quest_stages_num):
+                stage = {}
+                stage_entry = {}
+                stage["index"] = int.from_bytes(self.data[offset:offset+1], "little")
+                stage["flag"] = int.from_bytes(self.data[offset+1:offset+2], "little")
+                stage["entry_num"] = int.from_bytes(self.data[offset+2:offset+3], "little")
+                stage_entry["num"] = int.from_bytes(self.data[offset+3:offset+4], "little")
+                stage_entry["completion_day"] = int.from_bytes(self.data[offset+4:offset+6], "little")
+                stage_entry["completion_year"] = int.from_bytes(self.data[offset+6:offset+8], "little")
+                stage["entry"] = stage_entry
+                self.quest_stages.append(stage)
+                offset += 8
+        # Quest Script
+        if cr_flags & 0x08000000:
+            # TODO: Try to understand quest script data.  It is not entirely understood.
+            # https://en.uesp.net/wiki/Oblivion_Mod:Save_File_Format/QUST
+            pass
+
+    def __str__(self, depth=0):
+        ret = "   "*depth + "QUST {\n" + \
+              "   "*(depth+1) + f"form_id: {hex(self.form_id)},\n" + \
+              "   "*(depth+1) + f"cr_flags: {self.cr_flags},\n" + \
+              "   "*(depth+1) + f"flags: {self.flags},\n" + \
+              "   "*(depth+1) + f"quest_stages: ["
+        if self.quest_stages:       
+            for stage in self.quest_stages:
+                ret += "\n" + "   "*(depth+1) + "{\n" + \
+                       "   "*(depth+2) + f"index: {stage['index']},\n" + \
+                       "   "*(depth+2) + f"flag: {stage['flag']},\n" + \
+                       "   "*(depth+2) + f"entry_num: {stage['entry_num']},\n" + \
+                       "   "*(depth+2) + f"entry: {stage['entry']},\n" + \
+                       "   "*(depth+1) + "},"
+        ret += "]\n"
+        ret += "   "*(depth+1) + f"quest_script: {self.quest_script}\n"
+        ret += "   "*(depth) + "}"
+
+        return ret
+    
+    def __repr__(self):
+        return self.__str__()
+        
+
 class WEAP:
-    def __init__(self, cr_flags, size, data):
+    def __init__(self, form_id, cr_flags, size, data):
+        self.form_id = form_id
         self.cr_flags = cr_flags
         self.size = size
         self.data = data
@@ -509,6 +595,7 @@ class WEAP:
 
     def __str__(self, depth=0):
         return "   "*depth + "WEAP {\n" + \
+               "   "*(depth+1) + f"form_id: {hex(self.form_id)},\n" + \
                "   "*(depth+1) + f"cr_flags: {self.cr_flags},\n" + \
                "   "*(depth+1) + f"form_flags: {bin(self.form_flags) if self.form_flags else None},\n" + \
                "   "*(depth+1) + f"value: {self.value},\n" + \
