@@ -186,16 +186,17 @@ class ChangeRecord:
 
         self.has_form_flags = bool(self.cr_flags & 0x00000001)
 
-        # print(cr_type_names[self._type])
 
 
         match self.cr_type:
-            case 6: self.subrecords.append(FACT(self.cr_flags, self.data_size, self.data))
+            case 6:
+                self.subrecords.append(FACT(self.cr_flags, self.data_size, self.data))
+                print(self.subrecords[-1])
             case 19:
-                # print("APPA")
+                print("APPA")
                 pass
             case 20:
-                # print("ARMO")
+                print("ARMO")
                 pass
             case 21: self.subrecords.append(BOOK(self.cr_flags, self.data_size, self.data))
             case 22:
@@ -211,8 +212,7 @@ class ChangeRecord:
                 print("MISC")
                 pass
             case 33:
-                print("WEAP")
-                pass
+                self.subrecords.append(WEAP(self.cr_flags, self.data_size, self.data))
             case 34:
                 print("AMMO")
                 pass
@@ -220,8 +220,9 @@ class ChangeRecord:
                 # print("NPC_")
                 pass
             case 36:
-                # print("CREA")
-                pass
+                print("CREA")
+                self.subrecords.append(CREA(self.cr_flags, self.data_size, self.data))
+                print(self.subrecords[-1])
             case 38:
                 print("SLGM")
                 pass
@@ -292,6 +293,132 @@ class BOOK:
     def __repr__(self):
         return self.__str__()
     
+class CREA:
+    def __init__(self, cr_flags, size, data):
+        self.cr_flags = cr_flags
+        self.size = size
+        self.data = data
+        # optional fields
+        self.form_flags = None
+        self.base_health = None
+        self.base_attributes = None
+        self.base_data = None
+        self.spell_list = None
+        self.factions = None
+        self.full_name = None
+        self.ai_data = None
+        self.skills = None
+        self.combat_style = None
+        self.base_modifiers = None
+
+        offset = 0
+
+        # Form Flags
+        if cr_flags & 0x00000001:
+            self.form_flags = int.from_bytes(self.data[:4], "little")
+            offset += 4
+        # Base Attributes
+        if cr_flags & 0x00000008:
+            self.base_attributes = {}
+            attributes = ["strength", "intelligence", "willpower", "agility", "speed", "endurance", "personality", "luck"]
+            
+            for i, attr in enumerate(attributes):
+                self.base_attributes[attr] = int.from_bytes(self.data[offset+i:offset+i+1], "little")    
+            offset += 8
+        # Base Data
+        if cr_flags & 0x00000010:
+            self.base_data = {}
+            self.base_data["flags"] = int.from_bytes(self.data[offset:offset+4], "little")
+            self.base_data["base_magicka"] = int.from_bytes(self.data[offset+4:offset+6], "little")
+            self.base_data["base_fatigue"] = int.from_bytes(self.data[offset+6:offset+8], "little")
+            self.base_data["bartar_gold"] = int.from_bytes(self.data[offset+8:offset+10], "little")
+            self.base_data["level"] = int.from_bytes(self.data[offset+10:offset+12], "little")
+            self.base_data["calc_min"] = int.from_bytes(self.data[offset+12:offset+14], "little")
+            self.base_data["calc_max"] = int.from_bytes(self.data[offset+14:offset+16], "little")
+            offset += 16
+        # Faction List
+        if cr_flags & 0x00000040:
+            self.factions = []
+            self.factions_num = int.from_bytes(self.data[offset:offset+2], "little")
+            offset += 2
+            
+            for _ in range(self.factions_num):
+                self.factions.append(
+                    [int.from_bytes(self.data[offset:offset+4], "little")
+                     ,int.from_bytes(self.data[offset+4:offset+8], "little")]
+                )
+                offset += 8
+        # AI Data
+        if cr_flags & 0x00000100:
+            self.ai_data = int.from_bytes(self.data[offset:offset+4], "little")
+            offset += 4
+        # Spell List
+        if cr_flags & 0x00000020:
+            self.spell_list = []
+            self.spell_count = int.from_bytes(self.data[offset:offset+2], "little")
+            offset += 2
+            for _ in range(self.spell_count):
+                self.spell_list.append(int.from_bytes(self.data[offset:offset+4], "little"))
+                offset += 4
+        # Base Health
+        if cr_flags & 0x00000004:
+            self.base_health = int.from_bytes(self.data[offset:offset+4], "little")
+            offset += 4
+        # Base Modifiers
+        # https://en.uesp.net/wiki/Oblivion_Mod:Actor_Value_Indices
+        if cr_flags & 0x10000000:
+            self.base_modifiers = {}
+            self.base_modifiers_num = int.from_bytes(self.data[offset:offset+2], "little")
+            offset += 2
+            for _ in range(self.base_modifiers_num):
+                value_index = int.from_bytes(self.data[offset:offset+1], "little")
+                mod_value = struct.unpack("f", self.data[offset+1:offset+5])[0]
+                self.base_modifiers[value_index] = mod_value
+                offset += 5
+        # Full Name
+        if cr_flags & 0x00000080:
+            self.full_name = self.data[offset:self.size].decode("utf-8")
+            offset += self.size
+        # Skills
+        if cr_flags & 0x00000200:
+            self.skills = {}
+            self.skills_names = [
+                "Armorer", "Athletics", "Blade", "Block", "Blunt", "Hand to Hand", "Heavy Armor",
+                "Alchemy", "Alteration", "Conjuration", "Destruction", "Illusion", "Mysticism",
+                "Restoration", "Acrobatics", "Light Armor", "Marksman", "Mercantile", "Security",
+                "Sneak", "Speechcraft"
+            ]
+            
+            for i, skill in enumerate(self.skills_names):
+                self.skills[skill] = int.from_bytes(self.data[offset+i:offset+i+1], "little")
+            offset += 21
+        # Combat Style
+        if cr_flags & 0x00000400:
+            self.combat_style = int.from_bytes(self.data[offset:offset+4], "little")
+            offset += 4
+
+
+    def __str__(self, depth=0):
+        return "   "*depth + "CREA {\n" + \
+               "   "*(depth+1) + f"cr_flags: {hex(self.cr_flags)},\n" + \
+               "   "*(depth+1) + f"form_flags: {self.form_flags},\n" + \
+               "   "*(depth+1) + f"base_health: {self.base_health},\n" + \
+               "   "*(depth+1) + f"base_attributes: {self.base_attributes},\n" + \
+               "   "*(depth+1) + f"base_data: {self.base_data},\n" + \
+               "   "*(depth+1) + f"spell_list: {self.spell_list},\n" + \
+               "   "*(depth+1) + f"factions: {self.factions},\n" + \
+               "   "*(depth+1) + f"full_name: {self.full_name},\n" + \
+               "   "*(depth+1) + f"ai_data: {self.ai_data},\n" + \
+               "   "*(depth+1) + f"skills: {self.skills},\n" + \
+               "   "*(depth+1) + f"combat_style: {self.combat_style},\n" + \
+               "   "*(depth+1) + f"base_modifiers: {self.base_modifiers},\n" + \
+                "   "*(depth+1) + f"size: {self.size},\n" + \
+               "   "*(depth+1) + f"data: {self.data},\n" + \
+               "   "*(depth) + "}"
+    
+    def __repr__(self):
+        return self.__str__()
+
 class FACT:
     def __init__(self, cr_flags, size, data):
         self.cr_flags = cr_flags
@@ -306,15 +433,15 @@ class FACT:
 
         if cr_flags & 0x00000008:
             self.reactions_num = int.from_bytes(self.data[:2], "little")
+            offset += 2
             self.reactions = []
 
             for _ in range(self.reactions_num):
                 self.reactions.append(
                     (int.from_bytes(self.data[offset:offset+4], "little"),
-                    int.from_bytes(self.data[offset+4:offset+8], "little")))
-                offset += 8
-                
-            offset += 2
+                     int.from_bytes(self.data[offset+4:offset+8], "little"))
+                )
+                offset += 8  
 
         if cr_flags & 0x00000004:
             self.flags = int.from_bytes(self.data[offset:offset+1], "little")
@@ -326,7 +453,7 @@ class FACT:
                "   "*(depth+1) + f"reactions_num: {self.reactions_num},\n"
         
         for reaction in self.reactions:
-            ret += "   "*(depth+2) + f"reaction: ({reaction[0]}, {reaction[1]}),\n"
+            ret += "   "*(depth+2) + f"reaction: ({reaction[0]}, {hex(reaction[1])}),\n"
 
         ret += "   "*(depth+1) + f"flags: {self.flags},\n" + \
                "   "*(depth) + "}"
@@ -360,6 +487,36 @@ class KEYM:
                "   "*(depth+1) + f"value: {self.value},\n" + \
                "   "*(depth) + "}"
 
+    def __repr__(self):
+        return self.__str__()
+
+class WEAP:
+    def __init__(self, cr_flags, size, data):
+        self.cr_flags = cr_flags
+        self.size = size
+        self.data = data
+        # optional fields
+        self.form_flags = None
+        self.value = None
+
+        offset = 0
+
+        if cr_flags & 0x00000001:
+            self.form_flags = int.from_bytes(self.data[:4], "little")
+            offset += 4
+        if cr_flags & 0x00000008:
+            self.value = int.from_bytes(self.data[offset:offset+4], "little")
+
+    def __str__(self, depth=0):
+        return "   "*depth + "WEAP {\n" + \
+               "   "*(depth+1) + f"cr_flags: {self.cr_flags},\n" + \
+               "   "*(depth+1) + f"form_flags: {bin(self.form_flags) if self.form_flags else None},\n" + \
+               "   "*(depth+1) + f"value: {self.value},\n" + \
+               "   "*(depth) + "}"
+
+    def __repr__(self):
+        return self.__str__()
+    
 
 
 class SubRecord:
